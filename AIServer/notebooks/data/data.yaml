@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 1
+names: ['sign']
+
+roboflow:
+  workspace: zeyadcode
+  project: scarymaneatskidsdetector-y3ryj
+  version: 2
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/zeyadcode/scarymaneatskidsdetector-y3ryj/dataset/2

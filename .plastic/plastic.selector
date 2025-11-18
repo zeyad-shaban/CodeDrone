@@ -1,0 +1,4 @@
+repository "DronePayloadDropping/DronePayloadDropping@11270195284561@cloud"
+  path "/"
+    br "/main"
+    co "/main"
