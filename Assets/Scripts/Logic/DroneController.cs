@@ -3,27 +3,9 @@ using UnityEngine;
 
 public class DroneController : MonoBehaviour
 {
-    public enum ActionSpace
-    {
-        Up,
-        Down,
-        Left,
-        Right,
-        Forward,
-        Backward,
-        // DropPayload,
-        Nothing,
-    }
-
-    // Flight required vars
-    [SerializeField] private Transform targetObj;
-
-    // Drone Params
-    [SerializeField] private float flySpeed = 6;
     [SerializeField] private float hoverSpeed = 7;
-    [SerializeField] bool isAuto = false;
-
-    // Helper params
+    [SerializeField] private float flySpeed = 6;
+    [SerializeField] float rotSpeed = 5;
     private float reachedThresh = 0.5f;
 
     private DroneInputActions droneInputActions;
@@ -37,21 +19,16 @@ public class DroneController : MonoBehaviour
 
     private void Update()
     {
-        if (isAuto)
-        {
-            Vector3 targetPnt3d = targetObj.transform.position;
-            bool reached = MoveToPoint(new Vector2(targetPnt3d.x, targetPnt3d.z));
-        }
     }
+
 
     public bool MoveToPoint(Vector2 targetPnt)
     {
-        Vector3 pnt = new(targetPnt.x, 0, targetPnt.y);
-        return MoveToPoint(pnt);
+        return MoveToPoint(new Vector3(targetPnt.x, 0, targetPnt.y));
     }
+
     public bool MoveToPoint(Vector3 targetPnt)
     {
-        // Returns true if reached
         Vector3 dir = targetPnt - transform.position;
         dir.y = 0;
 
@@ -59,7 +36,7 @@ public class DroneController : MonoBehaviour
             return true;
 
         MoveInDirection(dir.normalized);
-        transform.rotation = Quaternion.LookRotation(dir);
+        transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(dir), rotSpeed * Time.deltaTime);
         return false;
     }
 
@@ -71,6 +48,7 @@ public class DroneController : MonoBehaviour
         direction = direction * Time.deltaTime * flySpeed;
         transform.position += direction;
     }
+
     public void DoHover(float hoverVal)
     {
         hoverVal = hoverVal * Time.deltaTime * hoverSpeed;

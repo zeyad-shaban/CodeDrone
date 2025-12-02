@@ -16,7 +16,6 @@ def root():
 
 @router.post("/detect_flags")
 async def detect_flags(img_file: UploadFile, min_conf: float = Query(0.2, ge=0, le=1)):
-    print(f"called with conf={min_conf}")
     img = await img_file.read()
     img = Image.open(io.BytesIO(img)).convert("RGB")
 

@@ -19,7 +19,7 @@ class RectangleCorners
         {
             if (corner.x >= maxX)
                 maxX = corner.x;
-            else if (corner.x < minX)
+            if (corner.x < minX)
                 minX = corner.x;
 
             if (corner.z > maxY)
