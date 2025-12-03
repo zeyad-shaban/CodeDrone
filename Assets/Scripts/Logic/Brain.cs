@@ -4,8 +4,7 @@ using System.IO;
 using Unity.VisualScripting;
 using UnityEngine;
 
-public enum AgentState
-{
+public enum AgentState {
     Searching,
     Dropping,
     HoverWaitDrop,
@@ -13,8 +12,7 @@ public enum AgentState
 }
 
 // THE MAIN GOD OF THE DRONE
-public class Brain : MonoBehaviour
-{
+public class Brain : MonoBehaviour {
     #region params
     // Events
     public event Action OnCutRope;
@@ -51,33 +49,21 @@ public class Brain : MonoBehaviour
     DroneController droneController;
     #endregion params
 
-    void Awake()
-    {
+    void Awake() {
         flagDetector = transform.GetComponent<FlagDetector>();
         droneController = transform.GetComponent<DroneController>();
         state = AgentState.Searching;
     }
 
-    void Update()
-    {
-        if (state == AgentState.Searching)
-        {
-            Searching();
-        }
-    }
-
-    void Start()
-    {
+    void Start() {
         Transform[] searchingTransforms = searchObjsParent.GetComponentsInChildren<Transform>();
-        if (searchingTransforms.Length != 5)
-        {
+        if (searchingTransforms.Length != 5) {
             Debug.LogError("Incomplete Search Grid");
             return;
         }
 
         Vector3[] searchCorners = new Vector3[4];
-        for (int i = 0; i < 4; ++i)
-        {
+        for (int i = 0; i < 4; ++i) {
             searchCorners[i] = searchingTransforms[i + 1].position;
         }
 
@@ -92,15 +78,75 @@ public class Brain : MonoBehaviour
         gameObject.GetComponent<GridVisualizer>().VisualizePath(searchGrid);
     }
 
-    public void Searching()
-    {
-        if (currSearchTargetPnt >= searchGrid.Count)
-        {
+    void OnEnable() {
+        flagDetector.OnFlagDetected += OnFlagDetectedHandler;
+    }
+
+    void OnDisable() {
+        flagDetector.OnFlagDetected -= OnFlagDetectedHandler;
+    }
+
+
+    void Update() {
+        if (state == AgentState.Searching) {
+            Searching();
+        }
+        if (state == AgentState.Dropping) {
+            Dropping();
+        }
+        if (state == AgentState.HoverWaitDrop) {
+            HoverWaitDrop();
+        }
+    }
+
+
+    public void HoverWaitDrop() {
+        currDropWaitTime += Time.deltaTime;
+        if (currDropWaitTime >= maxDropWaitTime) {
+            currDropWaitTime = 0;
+            OnCutRope?.Invoke();
+            state = AgentState.ReturnToLaunch;
+        }
+    }
+
+    public void Dropping() {
+        Debug.Log($"IT'S HERO TIME {dropAtTarget.worldPos}");
+        if (droneController.MoveToPoint(dropAtTarget.worldPos)) {
+            state = AgentState.HoverWaitDrop;
+        }
+    }
+
+    public void Searching() {
+        if (currSearchTargetPnt >= searchGrid.Count) {
             state = AgentState.ReturnToLaunch;
             return;
         }
 
         if (droneController.MoveToPoint(searchGrid[currSearchTargetPnt]))
             ++currSearchTargetPnt;
+    }
+
+    private void OnFlagDetectedHandler(DetectionResult detections) {
+        if (detections.conf.Length == 0 || state != AgentState.Searching)
+            return;
+
+        for (int i = 0; i < detections.conf.Length; ++i) {
+            float x1 = detections.boxes[i * 4];
+            float y1 = detections.boxes[i * 4 + 1];
+            float x2 = detections.boxes[i * 4 + 2];
+            float y2 = detections.boxes[i * 4 + 3];
+
+            float sx = (x1 + x2) / 2.0f;
+            float sy = FlagDetector.IMG_HEIGHT - (y1 + y2) / 2.0f;
+
+            Vector3 pos = new(sx, sy, 0);
+            Vector3 worldPos = flagDetector.GetWorldPos(pos, 0, 0.3f);
+
+            dropAtTarget = new Target(worldPos);
+        }
+
+        if (state == AgentState.Searching) {
+            state = AgentState.Dropping;
+        }
     }
 }

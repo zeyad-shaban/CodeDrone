@@ -80,7 +80,7 @@ class TargetsList
         return confirmedTargets;
     }
 
-    public Target ArchivedPopConfirmed()
+    public Target ArchivePopConfirmed()
     {
         List<Target> confirmedTargets = GetConfirmedTargets();
         if (confirmedTargets.Count <= 0)

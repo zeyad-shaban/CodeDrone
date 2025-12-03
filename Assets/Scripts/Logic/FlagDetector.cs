@@ -8,9 +8,10 @@ using System.Threading.Tasks;
 public class FlagDetector : MonoBehaviour
 {
     public event Action<DetectionResult> OnFlagDetected;
-    
+
     [Header("Capture")]
     [SerializeField] Camera droneCamera;
+    [SerializeField] LayerMask groundLayer;
     public const int IMG_WIDTH = 704;
     public const int IMG_HEIGHT = 704;
 
@@ -44,16 +45,26 @@ public class FlagDetector : MonoBehaviour
         Texture2D img = new Texture2D(IMG_WIDTH, IMG_HEIGHT, TextureFormat.RGB24, false);
         img.ReadPixels(new Rect(0, 0, IMG_WIDTH, IMG_HEIGHT), 0, 0);
         img.Apply();
-        
+
         droneCamera.targetTexture = null;
         RenderTexture.active = null;
 
         waitingResponse = true;
-        await SendFile(img);
-        waitingResponse = false;
-        DestroyImmediate(img);
+        try
+        {
+            await SendFile(img);
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"SendFile exception: {ex}");
+        }
+        finally
+        {
+            waitingResponse = false;
+            DestroyImmediate(img);
+        }
     }
-    
+
     async private Task<bool> SendFile(Texture2D img)
     {
         byte[] imgBytes = img.EncodeToPNG();
@@ -74,16 +85,34 @@ public class FlagDetector : MonoBehaviour
 
         DetectionResult res = JsonUtility.FromJson<DetectionResult>(req.downloadHandler.text);
         OnFlagDetected?.Invoke(res);
-        
-        if(res.conf.Length != 0)
+
+        if (res.conf.Length != 0)
             Debug.Log("A flag was detected");
-        
-        
+
+
         return true;
     }
-    
+
     public Camera GetDroneCamera()
     {
         return droneCamera;
+    }
+
+    public Vector3 GetWorldPos(Vector3 pos, float noiseMean = 0.0f, float noiseStd = 0.0f)
+    {
+        droneCamera.targetTexture = rt;
+
+        Ray ray = droneCamera.ScreenPointToRay(pos);
+        RaycastHit hit;
+
+        Vector3 worldPos = Vector3.zero;
+        if (Physics.Raycast(ray, out hit, 1000f, groundLayer))
+        {
+            Vector3 noise = NoiseGenerator.GetGaussianVector3(noiseMean, noiseStd);
+            worldPos = hit.point + noise;
+        }
+
+        droneCamera.targetTexture = null;
+        return worldPos;
     }
 }
