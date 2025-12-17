@@ -2,81 +2,137 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class GridVisualizer : MonoBehaviour
-{
-    [Header("Visual Settings")]
-    [SerializeField] private float pointSpawnDelay = 0.15f; // Speed of animation
+public class GridVisualizer : MonoBehaviour {
+    [Header("Visual Settings - Grid")]
+    [SerializeField] private float pointSpawnDelay = 0.15f;
     [SerializeField] private float pointScale = 3.0f;
     [SerializeField] private Color pointColor = new Color(1f, 0.2f, 0.2f, 0.8f);
-    [SerializeField] private Color lineColor = Color.yellow;
-    [SerializeField] private Material pointMaterial; // Assign a simple URP/Standard Lit material
+    [SerializeField] private Color gridLineColor = Color.yellow;
+    [SerializeField] private Material pointMaterial;
 
-    private LineRenderer pathLine;
+    [Header("Visual Settings - Target Ray")]
+    [SerializeField] private Color rayColor = Color.red;
+    [SerializeField] private float rayDuration = 1.0f; // How long the shot takes
+    [SerializeField] private float rayWidth = 0.2f;
 
-    // Call this instead of your loop
-    public void VisualizePath(List<Vector2> searchGrid)
-    {
-        // 1. Setup the Line Renderer
-        if (pathLine == null)
-        {
-            pathLine = gameObject.AddComponent<LineRenderer>();
-            pathLine.startWidth = 0.5f;
-            pathLine.endWidth = 0.5f;
-            pathLine.material = new Material(Shader.Find("Sprites/Default")); // Simple shader
-            pathLine.startColor = lineColor;
-            pathLine.endColor = lineColor;
-        }
+    private LineRenderer gridLine;   // Renamed from pathLine for clarity
+    private LineRenderer targetLine; // New specific line for the ray
 
-        pathLine.positionCount = 0;
+    // ---------------------- GRID LOGIC (Existing) ----------------------
+    public void VisualizePath(List<Vector2> searchGrid) {
+        // Use helper to create or get the line
+        if (gridLine == null)
+            gridLine = CreateLine("GridLineRenderer", gridLineColor, 0.5f);
 
-        // 2. Start the animation
+        gridLine.positionCount = 0;
         StartCoroutine(AnimateGridGeneration(searchGrid));
     }
 
-    private IEnumerator AnimateGridGeneration(List<Vector2> gridPoints)
-    {
-        int index = 0;
+    // ---------------------- NEW TARGET RAY LOGIC ----------------------
+    public void VisualizeTargetRay(Vector3 targetPosition) =>
+        VisualizeTargetRay(targetPosition, Vector3.zero);
 
-        foreach (Vector2 pnt in gridPoints)
-        {
+    public void VisualizeTargetRay(Vector3 targetPosition, Vector3 offset) {
+        // 1. Setup the dedicated Target Line
+        if (targetLine == null)
+            targetLine = CreateLine("TargetLineRenderer", rayColor, rayWidth);
+
+        targetLine.positionCount = 2;
+        targetLine.enabled = true;
+
+        // 2. Start the shooting animation
+        StopCoroutine("AnimateRay"); // Stop overlap if called twice
+        StartCoroutine(AnimateRay(targetPosition, offset));
+    }
+
+    private IEnumerator AnimateRay(Vector3 targetPos, Vector3 offset) {
+        float timer = 0;
+
+        while (timer < rayDuration) {
+            timer += Time.deltaTime;
+            float t = timer / rayDuration;
+
+            // Ease out for a satisfying "Ziiip" effect
+            // t = Mathf.Sin(t * Mathf.PI * 0.5f); 
+
+            // 1. Keep the start attached to US (the moving drone)
+            targetLine.SetPosition(0, transform.position + offset);
+
+            // 2. Interpolate the tip of the laser from US to the TARGET
+            Vector3 currentTipPos = Vector3.Lerp(transform.position + offset, targetPos, t);
+            targetLine.SetPosition(1, currentTipPos);
+
+            yield return null;
+        }
+
+        // Ensure it ends perfectly at the target
+        targetLine.SetPosition(0, transform.position + offset);
+        targetLine.SetPosition(1, targetPos);
+
+        // Optional: If you want the line to disappear after reaching, uncomment below:
+        // yield return new WaitForSeconds(0.5f);
+        // targetLine.enabled = false; 
+    }
+
+    // ---------------------- HELPERS & ANIMATIONS ----------------------
+
+    // Helper to keep code clean and reusable
+    private LineRenderer CreateLine(string name, Color col, float width) {
+        // Check if child object already exists to avoid duplicates
+        Transform child = transform.Find(name);
+        LineRenderer lr;
+
+        if (child == null) {
+            GameObject go = new GameObject(name);
+            go.transform.SetParent(transform);
+            lr = go.AddComponent<LineRenderer>();
+            lr.material = new Material(Shader.Find("Sprites/Default"));
+        }
+        else {
+            lr = child.GetComponent<LineRenderer>();
+        }
+
+        lr.startWidth = width;
+        lr.endWidth = width;
+        lr.startColor = col;
+        lr.endColor = col;
+        return lr;
+    }
+
+    private IEnumerator AnimateGridGeneration(List<Vector2> gridPoints) {
+        int index = 0;
+        foreach (Vector2 pnt in gridPoints) {
             Vector3 pos = new Vector3(pnt.x, 38, pnt.y);
 
-            // A. Create the visual node (Sphere looks cleaner than Cube)
+            // Create Visual Node
             GameObject node = GameObject.CreatePrimitive(PrimitiveType.Sphere);
             node.transform.position = pos;
-            node.transform.localScale = Vector3.zero; // Start invisible for pop effect
+            node.transform.localScale = Vector3.zero;
 
-            // Clean up the node
-            Destroy(node.GetComponent<Collider>()); // Optimization
+            Destroy(node.GetComponent<Collider>());
             var renderer = node.GetComponent<Renderer>();
             if (pointMaterial != null) renderer.material = pointMaterial;
             renderer.material.color = pointColor;
 
-            // B. Update the Line Renderer
-            pathLine.positionCount = index + 1;
-            pathLine.SetPosition(index, pos);
+            // Update Line
+            gridLine.positionCount = index + 1;
+            gridLine.SetPosition(index, pos);
 
-            // C. "Pop" Animation (Scale up elasticity)
+            // Animation
             StartCoroutine(PopAnimation(node.transform));
-
             index++;
-
-            // Wait before showing the next one
             yield return new WaitForSeconds(pointSpawnDelay);
         }
     }
 
-    private IEnumerator PopAnimation(Transform target)
-    {
+    private IEnumerator PopAnimation(Transform target) {
         float timer = 0;
         float duration = 0.3f;
         Vector3 finalScale = new Vector3(pointScale, pointScale, pointScale);
 
-        while (timer < duration)
-        {
+        while (timer < duration) {
             timer += Time.deltaTime;
             float t = timer / duration;
-            // Elastic ease-out curve
             float scale = Mathf.Sin(t * Mathf.PI * 0.5f);
             target.localScale = Vector3.Lerp(Vector3.zero, finalScale, scale);
             yield return null;

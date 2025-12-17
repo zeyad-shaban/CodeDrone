@@ -5,8 +5,7 @@ using System.Threading.Tasks;
 
 
 // The eyes of this body
-public class FlagDetector : MonoBehaviour
-{
+public class FlagDetector : MonoBehaviour {
     public event Action<DetectionResult> OnFlagDetected;
 
     [Header("Capture")]
@@ -26,14 +25,12 @@ public class FlagDetector : MonoBehaviour
 
     private RenderTexture rt;
 
-    async private void Start()
-    {
+    async private void Start() {
         rt = new(IMG_WIDTH, IMG_HEIGHT, 16, RenderTextureFormat.ARGB32);
     }
 
 
-    async private void Update()
-    {
+    async private void Update() {
         if (waitingResponse)
             return;
 
@@ -46,27 +43,20 @@ public class FlagDetector : MonoBehaviour
         img.ReadPixels(new Rect(0, 0, IMG_WIDTH, IMG_HEIGHT), 0, 0);
         img.Apply();
 
-        droneCamera.targetTexture = null;
-        RenderTexture.active = null;
-
         waitingResponse = true;
-        try
-        {
+        try {
             await SendFile(img);
         }
-        catch (Exception ex)
-        {
+        catch (Exception ex) {
             Debug.LogError($"SendFile exception: {ex}");
         }
-        finally
-        {
+        finally {
             waitingResponse = false;
             DestroyImmediate(img);
         }
     }
 
-    async private Task<bool> SendFile(Texture2D img)
-    {
+    async private Task<bool> SendFile(Texture2D img) {
         byte[] imgBytes = img.EncodeToPNG();
 
         WWWForm form = new();
@@ -76,8 +66,7 @@ public class FlagDetector : MonoBehaviour
         using UnityWebRequest req = UnityWebRequest.Post(flagDetectorEndpoint, form);
         await req.SendWebRequest();
 
-        if (req.result != UnityWebRequest.Result.Success)
-        {
+        if (req.result != UnityWebRequest.Result.Success) {
             Debug.Log($"API call to {flagDetectorEndpoint} Failed: {req.error}");
             Debug.Log($"Err msg: {req.downloadHandler.text}");
             return false;
@@ -93,21 +82,18 @@ public class FlagDetector : MonoBehaviour
         return true;
     }
 
-    public Camera GetDroneCamera()
-    {
+    public Camera GetDroneCamera() {
         return droneCamera;
     }
 
-    public Vector3 GetWorldPos(Vector3 pos, float noiseMean = 0.0f, float noiseStd = 0.0f)
-    {
+    public Vector3 GetWorldPos(Vector3 pos, float noiseMean = 0.0f, float noiseStd = 0.0f) {
         droneCamera.targetTexture = rt;
 
         Ray ray = droneCamera.ScreenPointToRay(pos);
         RaycastHit hit;
 
         Vector3 worldPos = Vector3.zero;
-        if (Physics.Raycast(ray, out hit, 1000f, groundLayer))
-        {
+        if (Physics.Raycast(ray, out hit, 1000f, groundLayer)) {
             Vector3 noise = NoiseGenerator.GetGaussianVector3(noiseMean, noiseStd);
             worldPos = hit.point + noise;
         }

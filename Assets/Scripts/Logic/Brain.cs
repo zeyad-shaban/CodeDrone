@@ -6,7 +6,7 @@ using UnityEngine;
 
 public enum AgentState {
     Searching,
-    Dropping,
+    GoToFlag,
     HoverWaitDrop,
     ReturnToLaunch,
 }
@@ -91,28 +91,11 @@ public class Brain : MonoBehaviour {
         if (state == AgentState.Searching) {
             Searching();
         }
-        if (state == AgentState.Dropping) {
-            Dropping();
+        if (state == AgentState.GoToFlag) {
+            GoToFlag();
         }
         if (state == AgentState.HoverWaitDrop) {
             HoverWaitDrop();
-        }
-    }
-
-
-    public void HoverWaitDrop() {
-        currDropWaitTime += Time.deltaTime;
-        if (currDropWaitTime >= maxDropWaitTime) {
-            currDropWaitTime = 0;
-            OnCutRope?.Invoke();
-            state = AgentState.ReturnToLaunch;
-        }
-    }
-
-    public void Dropping() {
-        Debug.Log($"IT'S HERO TIME {dropAtTarget.worldPos}");
-        if (droneController.MoveToPoint(dropAtTarget.worldPos)) {
-            state = AgentState.HoverWaitDrop;
         }
     }
 
@@ -124,6 +107,23 @@ public class Brain : MonoBehaviour {
 
         if (droneController.MoveToPoint(searchGrid[currSearchTargetPnt]))
             ++currSearchTargetPnt;
+    }
+
+    public void GoToFlag() {
+        Debug.Log($"IT'S HERO TIME {dropAtTarget.worldPos}");
+        if (droneController.MoveToPoint(dropAtTarget.worldPos)) {
+            state = AgentState.HoverWaitDrop;
+        }
+        gameObject.GetComponent<GridVisualizer>().VisualizeTargetRay(dropAtTarget.worldPos, transform.forward * 0.3f);
+    }
+
+    public void HoverWaitDrop() {
+        currDropWaitTime += Time.deltaTime;
+        if (currDropWaitTime >= maxDropWaitTime) {
+            currDropWaitTime = 0;
+            OnCutRope?.Invoke();
+            state = AgentState.ReturnToLaunch;
+        }
     }
 
     private void OnFlagDetectedHandler(DetectionResult detections) {
@@ -146,7 +146,7 @@ public class Brain : MonoBehaviour {
         }
 
         if (state == AgentState.Searching) {
-            state = AgentState.Dropping;
+            state = AgentState.GoToFlag;
         }
     }
 }
