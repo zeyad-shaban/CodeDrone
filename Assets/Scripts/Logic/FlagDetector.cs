@@ -11,8 +11,8 @@ public class FlagDetector : MonoBehaviour {
     [Header("Capture")]
     [SerializeField] Camera droneCamera;
     [SerializeField] LayerMask groundLayer;
-    public const int IMG_WIDTH = 704;
-    public const int IMG_HEIGHT = 704;
+    public static int IMG_WIDTH = 0;
+    public static int IMG_HEIGHT = 0;
 
     [Header("Networking")]
     private bool waitingResponse = false;
@@ -26,6 +26,8 @@ public class FlagDetector : MonoBehaviour {
     private RenderTexture rt;
 
     async private void Start() {
+        IMG_WIDTH = droneCamera.pixelWidth;
+        IMG_HEIGHT = droneCamera.pixelHeight;
         rt = new(IMG_WIDTH, IMG_HEIGHT, 16, RenderTextureFormat.ARGB32);
     }
 

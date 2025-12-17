@@ -19,10 +19,10 @@ public class Brain : MonoBehaviour {
     // End Events
 
     // Parameters
-    private static float flagMergingThresh = 5.0f;
-    private static int minConfirmationScore = 20;
+    private static float flagMergingThresh = 3.0f;
+    private static int minConfirmationScore = 7;
     private static float mowOverlap = 0.2f; // 20% overlap between Mow lines
-    private static float minLastTimeDetected = 2.0f;
+    private static float minLastTimeDetected = 3.0f;
     private static float maxDropWaitTime = 2;
     private static float angleErr = 20;
     // End parameters
@@ -114,7 +114,7 @@ public class Brain : MonoBehaviour {
         if (droneController.MoveToPoint(dropAtTarget.worldPos)) {
             state = AgentState.HoverWaitDrop;
         }
-        gameObject.GetComponent<GridVisualizer>().VisualizeTargetRay(dropAtTarget.worldPos, transform.forward * 0.3f);
+        // gameObject.GetComponent<GridVisualizer>().VisualizeTargetRay(dropAtTarget.worldPos, transform.forward * 0.3f);
     }
 
     public void HoverWaitDrop() {
@@ -127,10 +127,13 @@ public class Brain : MonoBehaviour {
     }
 
     private void OnFlagDetectedHandler(DetectionResult detections) {
-        if (detections.conf.Length == 0 || state != AgentState.Searching)
+        if (detections.conf.Length == 0)
             return;
 
         for (int i = 0; i < detections.conf.Length; ++i) {
+            if (detections.conf[i] < 0.70f)
+                continue;
+
             float x1 = detections.boxes[i * 4];
             float y1 = detections.boxes[i * 4 + 1];
             float x2 = detections.boxes[i * 4 + 2];
@@ -142,11 +145,16 @@ public class Brain : MonoBehaviour {
             Vector3 pos = new(sx, sy, 0);
             Vector3 worldPos = flagDetector.GetWorldPos(pos, 0, 0.3f);
 
-            dropAtTarget = new Target(worldPos);
+            Target target = new Target(worldPos);
+            targets.Add(target, detections.conf[i]);
         }
+        Debug.Log($"#Detected: {detections.conf.Length}, #targets: {targets.Count}, #Confirmed {targets.GetConfirmedTargets().Count}");
 
-        if (state == AgentState.Searching) {
-            state = AgentState.GoToFlag;
+        if (targets.GetConfirmedTargets().Count > 0) {
+            dropAtTarget = targets.ArchivePopConfirmed();
+
+            if (state == AgentState.Searching)
+                state = AgentState.GoToFlag;
         }
     }
 }

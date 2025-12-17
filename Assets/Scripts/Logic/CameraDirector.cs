@@ -11,7 +11,7 @@ public class CameraDirector : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        SwitchToCamera(followCam);
+        SwitchToCamera(topViewCam);
     }
 
     // Update is called once per frame

@@ -7,7 +7,7 @@ import time
 import os, shutil
 
 model = None
-DEBUG = True
+DEBUG = False
 
 folder = "./detected"
 for filename in os.listdir(folder):
@@ -61,7 +61,6 @@ def detect_obj(img: Image.Image, min_conf: float):
         plt.title("Annotated image")
 
         # plt.show()
-        print("saved")
         cv2.imwrite(f"./detected/{time.time()}.png", annotated_img)
 
     return boxes.flatten().tolist(), conf.tolist()

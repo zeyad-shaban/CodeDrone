@@ -22,7 +22,7 @@ class Target
 
     public void IncrementConfirmationScore(float conf, Vector3 newPos)
     {
-        confirmationScore += conf * 2;
+        confirmationScore += conf * 3;
         lastDetectedTime = Time.time;
         worldPos = (1 - alpha) * worldPos + alpha * newPos;
     }
