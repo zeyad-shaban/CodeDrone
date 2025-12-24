@@ -20,11 +20,11 @@ public class Brain : MonoBehaviour {
 
     // Parameters
     private static float flagMergingThresh = 3.0f;
-    private static int minConfirmationScore = 7;
+    private static int minConfirmationScore = 8;
     private static float mowOverlap = 0.2f; // 20% overlap between Mow lines
     private static float minLastTimeDetected = 3.0f;
     private static float maxDropWaitTime = 2;
-    private static float angleErr = 20;
+    private static float angleErr = 0;
     // End parameters
     private float currDropWaitTime = 0;
 
@@ -131,7 +131,7 @@ public class Brain : MonoBehaviour {
             return;
 
         for (int i = 0; i < detections.conf.Length; ++i) {
-            if (detections.conf[i] < 0.70f)
+            if (detections.conf[i] < 0.7f)
                 continue;
 
             float x1 = detections.boxes[i * 4];
