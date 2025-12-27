@@ -24,7 +24,7 @@ public class Brain : MonoBehaviour {
     private static float mowOverlap = 0.2f; // 20% overlap between Mow lines
     private static float minLastTimeDetected = 3.0f;
     private static float maxDropWaitTime = 2;
-    private static float angleErr = 0;
+    private static float angleErr = 35;
     // End parameters
     private float currDropWaitTime = 0;
 
@@ -44,7 +44,7 @@ public class Brain : MonoBehaviour {
     [Header("Search Algorithm")]
     [SerializeField] GameObject searchObjsParent;
 
-    private List<Vector2> searchGrid = new();
+    public List<Vector2> searchGrid = new();
     private int currSearchTargetPnt = 0;
     DroneController droneController;
     #endregion params
@@ -74,8 +74,8 @@ public class Brain : MonoBehaviour {
         effectiveMowHeight = coveredHeight * (1 - mowOverlap);
 
         searchGrid = SearchGridPlanner.GenerateSearchGrid(searchCorners, effectiveMowHeight, effectiveMowWidth, transform.position);
-
-        gameObject.GetComponent<GridVisualizer>().VisualizePath(searchGrid);
+        
+        // gameObject.GetComponent<GridVisualizer>().VisualizePath(searchGrid);
     }
 
     void OnEnable() {
@@ -114,7 +114,7 @@ public class Brain : MonoBehaviour {
         if (droneController.MoveToPoint(dropAtTarget.worldPos)) {
             state = AgentState.HoverWaitDrop;
         }
-        // gameObject.GetComponent<GridVisualizer>().VisualizeTargetRay(dropAtTarget.worldPos, transform.forward * 0.3f);
+        gameObject.GetComponent<GridVisualizer>().VisualizeTargetRay(dropAtTarget.worldPos, transform.forward * 0.3f);
     }
 
     public void HoverWaitDrop() {

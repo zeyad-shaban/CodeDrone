@@ -7,7 +7,7 @@ import time
 import os, shutil
 
 model = None
-DEBUG = True
+DEBUG = False
 
 folder = "./detected"
 for filename in os.listdir(folder):
